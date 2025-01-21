@@ -31,16 +31,18 @@
 #include <config.h>
 #endif
 
-#include "positioning.h"
-
 #include <rcsc/common/server_param.h>
 #include <rcsc/math_util.h>
+#include "positioning.h"
+#include <rcsc/common/server_param.h>
+#include <rcsc/math_util.h>
+#include <rcsc/player/world_model.h>
 
 namespace rcsc {
 
 /*-------------------------------------------------------------------*/
 /*!
-
+ * \brief Constructor
  */
 Positioning::Positioning( const int unum,
                           const rcsc::Vector2D & target_point,
@@ -52,7 +54,28 @@ Positioning::Positioning( const int unum,
                          duration_step,
                          description )
 {
+    // Calculate optimal position
+    rcsc::Vector2D optimal_position = calculateOptimalPosition(unum, target_point);
+    setTargetPoint(optimal_position);
+}
 
+/*-------------------------------------------------------------------*/
+/*!
+ * \brief Calculate the optimal position for the player
+ */
+rcsc::Vector2D Positioning::calculateOptimalPosition(const int unum, const rcsc::Vector2D & target_point)
+{
+    const WorldModel & wm = WorldModel::instance();
+    const rcsc::Vector2D ball_pos = wm.ball().pos();
+    const rcsc::Vector2D goal_pos = rcsc::Vector2D(ServerParam::i().pitchHalfLength(), 0.0);
+
+    // Example logic: Position the player between the ball and the goal
+    rcsc::Vector2D optimal_position = (ball_pos + goal_pos) * 0.5;
+
+    // Adjust position based on player's current position and target point
+    optimal_position += (target_point - wm.self().pos()) * 0.1;
+
+    return optimal_position;
 }
 
 }
