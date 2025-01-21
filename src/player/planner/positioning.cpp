@@ -31,12 +31,10 @@
 #include <config.h>
 #endif
 
-#include <rcsc/common/server_param.h>
-#include <rcsc/math_util.h>
 #include "positioning.h"
+
 #include <rcsc/common/server_param.h>
 #include <rcsc/math_util.h>
-#include <rcsc/player/world_model.h>
 
 namespace rcsc {
 
@@ -55,7 +53,7 @@ Positioning::Positioning( const int unum,
                          description )
 {
     // Calculate optimal position
-    rcsc::Vector2D optimal_position = calculateOptimalPosition(unum, target_point);
+    rcsc::Vector2D optimal_position = calculateOptimalPosition(unum);
     setTargetPoint(optimal_position);
 }
 
@@ -63,17 +61,29 @@ Positioning::Positioning( const int unum,
 /*!
  * \brief Calculate the optimal position for the player
  */
-rcsc::Vector2D Positioning::calculateOptimalPosition(const int unum, const rcsc::Vector2D & target_point)
+rcsc::Vector2D Positioning::calculateOptimalPosition(const int unum)
 {
     const WorldModel & wm = WorldModel::instance();
     const rcsc::Vector2D ball_pos = wm.ball().pos();
     const rcsc::Vector2D goal_pos = rcsc::Vector2D(ServerParam::i().pitchHalfLength(), 0.0);
+    const rcsc::Vector2D self_pos = wm.self().pos();
 
-    // Example logic: Position the player between the ball and the goal
-    rcsc::Vector2D optimal_position = (ball_pos + goal_pos) * 0.5;
+    // Example logic: Position the player dynamically based on the ball and goal positions
+    rcsc::Vector2D optimal_position;
 
-    // Adjust position based on player's current position and target point
-    optimal_position += (target_point - wm.self().pos()) * 0.1;
+    if (wm.self().unum() == unum) {
+        // If the player is close to the ball, move towards the goal
+        if (self_pos.dist(ball_pos) < 10.0) {
+            optimal_position = (ball_pos + goal_pos) * 0.5;
+        }
+        // If the player is far from the ball, move to a strategic position
+        else {
+            optimal_position = ball_pos + rcsc::Vector2D(5.0, 0.0);
+        }
+    } else {
+        // Default positioning logic for other players
+        optimal_position = target_point;
+    }
 
     return optimal_position;
 }
