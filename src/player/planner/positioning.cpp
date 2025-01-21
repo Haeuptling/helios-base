@@ -67,23 +67,30 @@ rcsc::Vector2D Positioning::calculateOptimalPosition(const int unum)
     const rcsc::Vector2D ball_pos = wm.ball().pos();
     const rcsc::Vector2D goal_pos = rcsc::Vector2D(ServerParam::i().pitchHalfLength(), 0.0);
     const rcsc::Vector2D self_pos = wm.self().pos();
+    const std::vector<PlayerObject> & opponents = wm.opponentsFromBall();
 
-    // Example logic: Position the player dynamically based on the ball and goal positions
+    // Example logic: Position the player dynamically based on the ball, goal, and opponents' positions
     rcsc::Vector2D optimal_position;
 
-    if (wm.self().unum() == unum) {
-        // If the player is close to the ball, move towards the goal
-        if (self_pos.dist(ball_pos) < 10.0) {
-            optimal_position = (ball_pos + goal_pos) * 0.5;
-        }
-        // If the player is far from the ball, move to a strategic position
-        else {
-            optimal_position = ball_pos + rcsc::Vector2D(5.0, 0.0);
-        }
-    } else {
-        // Default positioning logic for other players
-        optimal_position = target_point;
+    // If the player is close to the ball, move towards the goal
+    if (self_pos.dist(ball_pos) < 10.0) {
+        optimal_position = (ball_pos + goal_pos) * 0.5;
     }
+    // If the player is far from the ball, move to a strategic position
+    else {
+        optimal_position = ball_pos + rcsc::Vector2D(5.0, 0.0);
+    }
+
+    // Adjust position to avoid opponents
+    for (const auto & opponent : opponents) {
+        if (optimal_position.dist(opponent.pos()) < 2.0) {
+            optimal_position += (optimal_position - opponent.pos()).setLength(2.0);
+        }
+    }
+
+    // Ensure the player stays within the field boundaries
+    optimal_position.x = std::max(-ServerParam::i().pitchHalfLength(), std::min(ServerParam::i().pitchHalfLength(), optimal_position.x));
+    optimal_position.y = std::max(-ServerParam::i().pitchHalfWidth(), std::min(ServerParam::i().pitchHalfWidth(), optimal_position.y));
 
     return optimal_position;
 }
